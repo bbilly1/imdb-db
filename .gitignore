@@ -1,0 +1,11 @@
+# env
+env/
+backend/app/.env
+
+# pg
+data/
+
+# python
+.venv
+.mypy_cache
+__pycache__
