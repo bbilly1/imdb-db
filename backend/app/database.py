@@ -1,8 +1,9 @@
 """connect to PG"""
 
 from os import environ
+
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 DATABASE_URL = environ["DATABASE_URL"]
 

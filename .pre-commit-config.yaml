@@ -29,3 +29,5 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
+
+exclude: 'backend/alembic/.*'

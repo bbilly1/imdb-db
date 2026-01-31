@@ -1,5 +1,6 @@
 """helper function"""
 
+
 def int_or_none(value: str) -> int | None:
     """convert str to int or None"""
     if value == "\\N":

@@ -3,7 +3,7 @@
 from pathlib import Path
 
 try:
-    
+
     from dotenv import load_dotenv
 
     if Path(".env").exists():
@@ -16,18 +16,17 @@ except ModuleNotFoundError:
 from os import environ
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, Depends
+from database import AsyncSessionLocal
+from fastapi import Depends, FastAPI
+from models import Person, Title
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-
-from database import AsyncSessionLocal
-from models import Title, Person
-
 
 app = FastAPI(
     title="IMDb Read-Only API",
     version="0.0.1",
 )
+
 
 @app.on_event("startup")
 async def on_startup() -> None:
@@ -43,14 +42,13 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 # ---------- Example placeholder routes ----------
 
+
 @app.get("/titles/{tconst}", response_model=Title)
 async def get_title(
     tconst: str,
     session: AsyncSession = Depends(get_session),
 ):
-    result = await session.execute(
-        select(Title).where(Title.tconst == tconst)
-    )
+    result = await session.execute(select(Title).where(Title.tconst == tconst))
     return result.scalar_one_or_none()
 
 
@@ -59,7 +57,5 @@ async def get_person(
     nconst: str,
     session: AsyncSession = Depends(get_session),
 ):
-    result = await session.execute(
-        select(Person).where(Person.nconst == nconst)
-    )
+    result = await session.execute(select(Person).where(Person.nconst == nconst))
     return result.scalar_one_or_none()

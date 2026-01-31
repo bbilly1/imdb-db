@@ -1,9 +1,10 @@
 """define db models"""
 
 from typing import Optional
-from sqlmodel import SQLModel, Field, Relationship
+
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import ARRAY, TEXT
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class Title(SQLModel, table=True):
@@ -20,9 +21,7 @@ class Title(SQLModel, table=True):
     end_year: Optional[int]
     runtime_minutes: Optional[int]
 
-    genres: Optional[list[str]] = Field(
-        sa_column=Column(ARRAY(TEXT))
-    )
+    genres: Optional[list[str]] = Field(sa_column=Column(ARRAY(TEXT)))
 
     rating: Optional["TitleRating"] = Relationship(back_populates="title")
     episodes: list["Episode"] = Relationship(
@@ -41,13 +40,9 @@ class Person(SQLModel, table=True):
     birth_year: Optional[int]
     death_year: Optional[int]
 
-    primary_professions: Optional[list[str]] = Field(
-        sa_column=Column(ARRAY(TEXT))
-    )
+    primary_professions: Optional[list[str]] = Field(sa_column=Column(ARRAY(TEXT)))
 
-    known_for_titles: Optional[list[str]] = Field(
-        sa_column=Column(ARRAY(TEXT))
-    )
+    known_for_titles: Optional[list[str]] = Field(sa_column=Column(ARRAY(TEXT)))
 
 
 class TitleRating(SQLModel, table=True):
@@ -91,13 +86,9 @@ class TitleAka(SQLModel, table=True):
     region: Optional[str]
     language: Optional[str]
 
-    types: Optional[list[str]] = Field(
-        sa_column=Column(ARRAY(TEXT))
-    )
+    types: Optional[list[str]] = Field(sa_column=Column(ARRAY(TEXT)))
 
-    attributes: Optional[list[str]] = Field(
-        sa_column=Column(ARRAY(TEXT))
-    )
+    attributes: Optional[list[str]] = Field(sa_column=Column(ARRAY(TEXT)))
 
     is_original: Optional[bool]
 

@@ -4,10 +4,10 @@ import asyncio
 import gzip
 import shutil
 from abc import ABC, abstractmethod
+from io import BytesIO
+from os import environ
 from pathlib import Path
 from typing import AsyncIterator
-from os import environ
-from io import BytesIO
 
 import aiohttp
 import asyncpg
