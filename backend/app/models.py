@@ -36,7 +36,7 @@ class Person(SQLModel, table=True):
     __tablename__ = "people"
 
     nconst: str = Field(primary_key=True)
-    primary_name: str
+    primary_name: Optional[str]
     birth_year: Optional[int]
     death_year: Optional[int]
 
