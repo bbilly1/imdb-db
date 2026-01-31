@@ -1,24 +1,36 @@
 """import title basic dataset"""
 
-from database import AsyncSessionLocal
-from models import Title
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.helper import bool_match, int_or_none, list_of_str_or_none
+import asyncpg
 from src.import_base import IngestDataset
 
 
-class TitleBasicImport(IngestDataset):
-    """ingest basic title dataset"""
+class IngestTitleBasics(IngestDataset):
+    """ingest title basic dataset"""
 
-    BATCH_SIZE = 2_000
+    def __init__(self, pool: asyncpg.Pool):
+        super().__init__("title.basics.tsv", pool)
 
-    async def process_chunk(self, lines: list[str]) -> None:
-        """process chunk of lines"""
-        titles = []
+    async def create_staging_table(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
+                tconst TEXT,
+                title_type TEXT,
+                primary_title TEXT,
+                original_title TEXT,
+                is_adult BOOLEAN,
+                start_year SMALLINT,
+                end_year SMALLINT,
+                runtime_minutes BIGINT,
+                genres TEXT
+            ) ON COMMIT PRESERVE ROWS
+            """
+        )
 
-        for line in lines:
-            (
+    async def merge_into_final(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            INSERT INTO titles (
                 tconst,
                 title_type,
                 primary_title,
@@ -27,48 +39,28 @@ class TitleBasicImport(IngestDataset):
                 start_year,
                 end_year,
                 runtime_minutes,
-                genres,
-            ) = line.split("\t")
-            titles.append(
-                {
-                    "tconst": tconst,
-                    "title_type": title_type,
-                    "primary_title": primary_title,
-                    "original_title": original_title,
-                    "is_adult": bool_match(is_adult),
-                    "start_year": int_or_none(start_year),
-                    "end_year": int_or_none(end_year),
-                    "runtime_minutes": int_or_none(runtime_minutes),
-                    "genres": list_of_str_or_none(genres),
-                }
+                genres
             )
-
-        print(f"processed {len(titles)} titles")
-        async with AsyncSessionLocal() as session:
-            for i in range(0, len(titles), self.BATCH_SIZE):
-                batch = titles[i : i + self.BATCH_SIZE]
-                await self._upsert_titles(session, rows=batch)
-
-            await session.commit()
-
-    async def _upsert_titles(
-        self,
-        session: AsyncSession,
-        rows: list[dict],
-    ) -> None:
-        stmt = insert(Title).values(rows)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["tconst"],
-            set_={
-                "title_type": stmt.excluded.title_type,
-                "primary_title": stmt.excluded.primary_title,
-                "original_title": stmt.excluded.original_title,
-                "is_adult": stmt.excluded.is_adult,
-                "start_year": stmt.excluded.start_year,
-                "end_year": stmt.excluded.end_year,
-                "runtime_minutes": stmt.excluded.runtime_minutes,
-                "genres": stmt.excluded.genres,
-            },
+            SELECT
+                tconst,
+                title_type,
+                primary_title,
+                NULLIF(original_title, ''),
+                is_adult,
+                start_year,
+                end_year,
+                runtime_minutes,
+                string_to_array(genres, ',')
+            FROM {self.staging_table}
+            ON CONFLICT (tconst) DO UPDATE
+            SET
+                title_type = EXCLUDED.title_type,
+                primary_title = EXCLUDED.primary_title,
+                original_title = EXCLUDED.original_title,
+                is_adult = EXCLUDED.is_adult,
+                start_year = EXCLUDED.start_year,
+                end_year = EXCLUDED.end_year,
+                runtime_minutes = EXCLUDED.runtime_minutes,
+                genres = EXCLUDED.genres
+            """
         )
-
-        await session.execute(stmt)

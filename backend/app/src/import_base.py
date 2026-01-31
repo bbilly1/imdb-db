@@ -1,4 +1,4 @@
-"""import base class"""
+"""import dataset base functionality"""
 
 import asyncio
 import gzip
@@ -7,21 +7,24 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import AsyncIterator
 from os import environ
+from io import BytesIO
 
 import aiohttp
+import asyncpg
 
 
 class IngestDataset(ABC):
     """
-    Base class for IMDb dataset ingestion.
+    Base class for IMDb dataset ingestion using COPY + staging tables.
     """
 
     CHUNK_SIZE_LINES = 100_000
     BASE_URL = "https://datasets.imdbws.com"
     CACHE_DIR = environ["CACHE_DIR"]
 
-    def __init__(self, dataset_name: str):
+    def __init__(self, dataset_name: str, pool: asyncpg.Pool):
         self.dataset_name = dataset_name
+        self.pool = pool
 
     @property
     def gz_path(self) -> Path:
@@ -30,24 +33,36 @@ class IngestDataset(ABC):
 
     @property
     def tsv_path(self) -> Path:
-        """tsv file path"""
+        """tsv decompressed path"""
         return self.gz_path.with_suffix("")
 
     @property
     def url(self) -> str:
-        """url to download"""
+        """download url"""
         return f"{self.BASE_URL}/{self.dataset_name}.gz"
 
+    @property
+    def staging_table(self) -> str:
+        """staging table"""
+        return f"staging_{self.dataset_name.rstrip(".tsv").replace(".", "_")}"
+
     async def run(self) -> None:
-        """run ingest"""
+        """run download and import"""
         await self._download_if_needed()
         self._extract_if_needed()
 
-        async for lines in self._read_tsv_in_chunks():
-            await self.process_chunk(lines)
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await self.create_staging_table(conn)
+
+                async for lines in self._read_tsv_in_chunks():
+                    await self.copy_chunk(conn, lines)
+
+                await self.merge_into_final(conn)
+                await self.cleanup_staging(conn)
 
     async def _download_if_needed(self) -> None:
-        """download if not exist"""
+        """download if not exist on file path"""
         if self.gz_path.exists():
             return
 
@@ -59,7 +74,7 @@ class IngestDataset(ABC):
                         f.write(chunk)
 
     def _extract_if_needed(self) -> None:
-        """extract if not exist"""
+        """extract if not extracted"""
         if self.tsv_path.exists():
             return
 
@@ -68,9 +83,7 @@ class IngestDataset(ABC):
                 shutil.copyfileobj(gz, out)
 
     async def _read_tsv_in_chunks(self) -> AsyncIterator[list[str]]:
-        """
-        Yields lists of raw TSV lines (excluding header).
-        """
+        """partial read tsv file"""
         loop = asyncio.get_running_loop()
 
         def generator():
@@ -88,9 +101,31 @@ class IngestDataset(ABC):
         for chunk in await loop.run_in_executor(None, lambda: list(generator())):
             yield chunk
 
+    async def copy_chunk(self, conn: asyncpg.Connection, lines: list[str]) -> None:
+        """COPY raw TSV lines into staging table"""
+        buf = BytesIO()
+        for line in lines:
+            buf.write(line.encode("utf-8"))
+            buf.write(b"\n")
+        buf.seek(0)
+
+        await conn.copy_to_table(
+            self.staging_table,
+            source=buf,
+            format="csv",
+            delimiter="\t",
+            null="\\N",
+            quote="\b",
+        )
+
     @abstractmethod
-    async def process_chunk(self, lines: list[str]) -> None:
-        """
-        Parse TSV lines and persist to DB.
-        Must be idempotent. implement in base class
-        """
+    async def create_staging_table(self, conn: asyncpg.Connection) -> None:
+        """to implement: create staging table"""
+
+    @abstractmethod
+    async def merge_into_final(self, conn: asyncpg.Connection) -> None:
+        """to implement: merge staging into final table"""
+
+    async def cleanup_staging(self, conn: asyncpg.Connection) -> None:
+        """clean up staging"""
+        await conn.execute(f"TRUNCATE {self.staging_table}")
