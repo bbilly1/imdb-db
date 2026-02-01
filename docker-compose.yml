@@ -7,5 +7,8 @@ services:
       - 127.0.0.1:5432:5432
     env_file:
       - ./env/pg.env
+    environment:
+      POSTGRES_MAX_WAL_SIZE: 4GB
+      POSTGRES_WAL_BUFFERS: 16MB
     volumes:   
       - ./data/volume/pg/data:/var/lib/postgresql/data/
