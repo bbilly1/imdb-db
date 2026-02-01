@@ -69,8 +69,15 @@ class Episode(SQLModel, table=True):
 
     __tablename__ = "episodes"
 
-    tconst: str = Field(foreign_key="titles.tconst", primary_key=True)
-    parent_tconst: str = Field(foreign_key="titles.tconst")
+    tconst: str = Field(
+        primary_key=True,
+        foreign_key="titles.tconst",
+        index=True,
+    )
+    parent_tconst: str = Field(
+        foreign_key="titles.tconst",
+        index=True,
+    )
 
     season_number: Optional[int]
     episode_number: Optional[int]

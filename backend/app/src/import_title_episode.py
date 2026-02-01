@@ -1,0 +1,52 @@
+"""import title episodes"""
+
+import asyncpg
+from src.import_base import IngestDataset
+
+
+class IngestTitleEpisodes(IngestDataset):
+    """ingest dataset"""
+
+    def __init__(self, pool: asyncpg.Pool):
+        super().__init__("title.episode.tsv", pool)
+
+    async def create_staging_table(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
+                tconst TEXT,
+                parent_tconst TEXT,
+                season_number INTEGER,
+                episode_number INTEGER
+            ) ON COMMIT DROP;
+            """
+        )
+
+    async def merge_into_final(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            INSERT INTO episodes (
+                tconst,
+                parent_tconst,
+                season_number,
+                episode_number
+            )
+            SELECT
+                e.tconst,
+                e.parent_tconst,
+                e.season_number,
+                e.episode_number
+            FROM {self.staging_table} e
+            WHERE EXISTS (
+                SELECT 1 FROM titles t WHERE t.tconst = e.tconst
+            )
+            AND EXISTS (
+                SELECT 1 FROM titles p WHERE p.tconst = e.parent_tconst
+            )
+            ON CONFLICT (tconst) DO UPDATE
+            SET
+                parent_tconst = EXCLUDED.parent_tconst,
+                season_number = EXCLUDED.season_number,
+                episode_number = EXCLUDED.episode_number;
+            """
+        )
