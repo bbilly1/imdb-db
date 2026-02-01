@@ -93,7 +93,11 @@ class TitleAka(SQLModel, table=True):
 
     __tablename__ = "title_akas"
 
-    title_id: str = Field(foreign_key="titles.tconst", primary_key=True)
+    title_id: str = Field(
+        foreign_key="titles.tconst",
+        primary_key=True,
+        index=True,
+    )
     ordering: int = Field(primary_key=True)
 
     title: str
