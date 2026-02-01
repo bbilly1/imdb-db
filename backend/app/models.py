@@ -23,7 +23,10 @@ class Title(SQLModel, table=True):
 
     genres: Optional[list[str]] = Field(sa_column=Column(ARRAY(TEXT)))
 
-    rating: Optional["TitleRating"] = Relationship(back_populates="title")
+    rating: Optional["TitleRating"] = Relationship(
+        back_populates="title",
+        sa_relationship_kwargs={"uselist": False},
+    )
     episodes: list["Episode"] = Relationship(
         back_populates="parent",
         sa_relationship_kwargs={"foreign_keys": "[Episode.parent_tconst]"},
@@ -50,7 +53,11 @@ class TitleRating(SQLModel, table=True):
 
     __tablename__ = "title_ratings"
 
-    tconst: str = Field(foreign_key="titles.tconst", primary_key=True)
+    tconst: str = Field(
+        foreign_key="titles.tconst",
+        primary_key=True,
+        index=True,
+    )
     average_rating: float
     num_votes: int
 
