@@ -23,7 +23,7 @@ class IngestTitleBasics(IngestDataset):
                 end_year SMALLINT,
                 runtime_minutes BIGINT,
                 genres TEXT
-            ) ON COMMIT PRESERVE ROWS
+            ) ON COMMIT DROP
             """
         )
 

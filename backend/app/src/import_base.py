@@ -59,7 +59,6 @@ class IngestDataset(ABC):
                     await self.copy_chunk(conn, lines)
 
                 await self.merge_into_final(conn)
-                await self.cleanup_staging(conn)
 
     async def _download_if_needed(self) -> None:
         """download if not exist on file path"""
@@ -125,7 +124,3 @@ class IngestDataset(ABC):
     @abstractmethod
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
         """to implement: merge staging into final table"""
-
-    async def cleanup_staging(self, conn: asyncpg.Connection) -> None:
-        """clean up staging"""
-        await conn.execute(f"TRUNCATE {self.staging_table}")

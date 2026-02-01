@@ -20,7 +20,7 @@ class IngestNameBasics(IngestDataset):
                 death_year SMALLINT,
                 primary_professions TEXT,
                 known_for_titles TEXT
-            ) ON COMMIT PRESERVE ROWS;
+            ) ON COMMIT DROP;
             """
         )
 
