@@ -112,32 +112,25 @@ class TitleAka(SQLModel, table=True):
 
 
 class TitlePrincipal(SQLModel, table=True):
-    """title user mapping"""
+    """Credits for a title (canonical IMDb credit table)"""
 
     __tablename__ = "title_principals"
 
-    tconst: str = Field(foreign_key="titles.tconst", primary_key=True)
+    tconst: str = Field(
+        foreign_key="titles.tconst",
+        primary_key=True,
+        index=True,
+    )
     ordering: int = Field(primary_key=True)
 
-    nconst: str = Field(foreign_key="people.nconst")
-    category: str
-    job: Optional[str]
-    characters: Optional[str]
+    nconst: str = Field(
+        foreign_key="people.nconst",
+        index=True,
+    )
 
-
-class TitleDirector(SQLModel, table=True):
-    """directors"""
-
-    __tablename__ = "title_directors"
-
-    tconst: str = Field(foreign_key="titles.tconst", primary_key=True)
-    nconst: str = Field(foreign_key="people.nconst", primary_key=True)
-
-
-class TitleWriter(SQLModel, table=True):
-    """writers"""
-
-    __tablename__ = "title_writers"
-
-    tconst: str = Field(foreign_key="titles.tconst", primary_key=True)
-    nconst: str = Field(foreign_key="people.nconst", primary_key=True)
+    category: str = Field(index=True)
+    job: Optional[str] = None
+    characters: Optional[list[str]] = Field(
+        default=None,
+        sa_column=Column(ARRAY(TEXT)),
+    )
