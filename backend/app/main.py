@@ -17,10 +17,8 @@ from os import environ
 from typing import AsyncGenerator
 
 from database import AsyncSessionLocal
-from fastapi import Depends, FastAPI
-from models import Person, Title
+from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
 
 app = FastAPI(
     title="IMDb Read-Only API",
@@ -40,22 +38,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-# ---------- Example placeholder routes ----------
-
-
-@app.get("/titles/{tconst}", response_model=Title)
-async def get_title(
-    tconst: str,
-    session: AsyncSession = Depends(get_session),
-):
-    result = await session.execute(select(Title).where(Title.tconst == tconst))
-    return result.scalar_one_or_none()
-
-
-@app.get("/people/{nconst}", response_model=Person)
-async def get_person(
-    nconst: str,
-    session: AsyncSession = Depends(get_session),
-):
-    result = await session.execute(select(Person).where(Person.nconst == nconst))
-    return result.scalar_one_or_none()
+@app.get("/api")
+async def api_is_up():
+    """hello world"""
+    return {"ping": "pong"}
