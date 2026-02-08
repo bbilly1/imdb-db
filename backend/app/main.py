@@ -14,28 +14,28 @@ except ModuleNotFoundError:
     pass
 
 from os import environ
-from typing import AsyncGenerator
 
-from database import AsyncSessionLocal
+from api.people import router as people_router
+from api.search import router as search_router
+from api.series import router as series_router
+from api.titles import router as titles_router
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncSession
 
 app = FastAPI(
     title="IMDb Read-Only API",
     version="0.0.1",
 )
 
+app.include_router(titles_router)
+app.include_router(series_router)
+app.include_router(people_router)
+app.include_router(search_router)
+
 
 @app.on_event("startup")
 async def on_startup() -> None:
     """startup checks"""
     Path(environ["CACHE_DIR"]).mkdir(parents=True, exist_ok=True)
-
-
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    """Async database session dependency"""
-    async with AsyncSessionLocal() as session:
-        yield session
 
 
 @app.get("/api")

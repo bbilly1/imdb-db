@@ -1,4 +1,6 @@
 -r backend/requirements.txt
+asyncpg-stubs==0.31.1
 ipython==9.9.0
 pre-commit==4.5.1
 requirementscheck==0.1.0
+sqlalchemy2-stubs==0.0.2a38
