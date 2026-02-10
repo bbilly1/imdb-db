@@ -13,3 +13,14 @@ services:
         -c min_wal_size=2GB
         -c max_wal_size=10GB
         -c checkpoint_completion_target=0.9
+
+  imdb-api:
+    build:
+      context: .
+    restart: "unless-stopped"
+    env_file:
+      - ./env/api.env
+    ports:
+      - 127.0.0.1:8000:8000
+    volumes:
+      - ./data/volume/api:/data
