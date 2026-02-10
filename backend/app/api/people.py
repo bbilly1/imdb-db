@@ -1,9 +1,10 @@
 """people endpoints"""
 
-from typing import Any, Optional
+from typing import Any
 
+from api.params import CategoryParams
 from dependencies import get_session
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from models import Person, Title, TitlePrincipal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,9 +28,7 @@ async def get_person(
 @router.get("/people/{nconst}/credits")
 async def list_person_credits(
     nconst: str,
-    category: Optional[str] = Query(default=None),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=50, ge=1, le=500),
+    params: CategoryParams = Depends(),
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
     """list of credits of person"""
@@ -40,10 +39,10 @@ async def list_person_credits(
         .distinct(TitlePrincipal.tconst)
         .order_by(TitlePrincipal.tconst, Title.start_year.desc(), Title.primary_title)  # type: ignore
     )
-    if category:
-        stmt = stmt.where(TitlePrincipal.category == category)
+    if params.category:
+        stmt = stmt.where(TitlePrincipal.category == params.category)
 
-    stmt = stmt.limit(size).offset((page - 1) * size)
+    stmt = stmt.limit(params.size).offset((params.page - 1) * params.size)
     result = await session.execute(stmt)
 
     people_credits: list[dict[str, Any]] = []

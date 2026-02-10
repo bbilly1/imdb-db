@@ -1,9 +1,8 @@
 """title endpoints"""
 
-from typing import Optional
-
+from api.params import CategoryParams, ListTitlesParams
 from dependencies import get_session
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from models import Title, TitlePrincipal, TitleRating
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,29 +26,24 @@ async def get_title(
 
 @router.get("/titles")
 async def list_titles(
-    genre: Optional[str] = Query(default=None),
-    year_from: Optional[int] = Query(default=None, ge=1800),
-    min_rating: Optional[float] = Query(default=None, ge=0.0, le=10.0),
-    title_type: Optional[str] = Query(default=None),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=50, ge=1, le=500),
+    params: ListTitlesParams = Depends(),
     session: AsyncSession = Depends(get_session),
 ) -> list[Title]:
     """get list of titles"""
     stmt = select(Title).options(selectinload(Title.rating))
 
-    if genre:
-        stmt = stmt.where(Title.genres.any(genre))  # type: ignore  # pylint: disable=no-member
-    if year_from and Title.start_year:
-        stmt = stmt.where(Title.start_year >= year_from)
-    if title_type:
-        stmt = stmt.where(Title.title_type == title_type)
-    if min_rating is not None:
+    if params.genre:
+        stmt = stmt.where(Title.genres.any(params.genre))  # type: ignore  # pylint: disable=no-member
+    if params.year_from and Title.start_year:
+        stmt = stmt.where(Title.start_year >= params.year_from)
+    if params.title_type:
+        stmt = stmt.where(Title.title_type == params.title_type)
+    if params.min_rating is not None:
         stmt = stmt.join(TitleRating, TitleRating.tconst == Title.tconst).where(
-            TitleRating.average_rating >= min_rating
+            TitleRating.average_rating >= params.min_rating
         )
 
-    stmt = stmt.limit(size).offset((page - 1) * size)
+    stmt = stmt.limit(params.size).offset((params.page - 1) * params.size)
     result = await session.execute(stmt)
     return result.scalars().all()
 
@@ -57,17 +51,15 @@ async def list_titles(
 @router.get("/titles/{tconst}/principals")
 async def list_title_principals(
     tconst: str,
-    category: Optional[str] = Query(default=None),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=50, ge=1, le=500),
+    params: CategoryParams = Depends(),
     session: AsyncSession = Depends(get_session),
 ) -> list[TitlePrincipal]:
     """get list title principal"""
     stmt = select(TitlePrincipal).where(TitlePrincipal.tconst == tconst)
-    if category:
-        stmt = stmt.where(TitlePrincipal.category == category)
+    if params.category:
+        stmt = stmt.where(TitlePrincipal.category == params.category)
     stmt = stmt.order_by(TitlePrincipal.ordering)
 
-    stmt = stmt.limit(size).offset((page - 1) * size)
+    stmt = stmt.limit(params.size).offset((params.page - 1) * params.size)
     result = await session.execute(stmt)
     return result.scalars().all()

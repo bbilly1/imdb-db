@@ -1,0 +1,30 @@
+"""shared API query parameter models"""
+
+from typing import Annotated, Optional
+
+from fastapi import Query
+from pydantic import BaseModel
+
+
+class PaginationParams(BaseModel):
+    page: Annotated[int, Query(default=1, ge=1)]
+    size: Annotated[int, Query(default=50, ge=1, le=500)]
+
+
+class CategoryParams(PaginationParams):
+    category: Annotated[Optional[str], Query(default=None)]
+
+
+class ListTitlesParams(PaginationParams):
+    genre: Annotated[Optional[str], Query(default=None)]
+    year_from: Annotated[Optional[int], Query(default=None, ge=1800)]
+    min_rating: Annotated[Optional[float], Query(default=None, ge=0.0, le=10.0)]
+    title_type: Annotated[Optional[str], Query(default=None)]
+
+
+class ListSeriesEpisodesParams(PaginationParams):
+    season: Annotated[Optional[int], Query(default=None, ge=1)]
+
+
+class SearchParams(PaginationParams):
+    q: Annotated[str, Query(min_length=1)]
