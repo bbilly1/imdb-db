@@ -23,6 +23,10 @@ async def search_titles(
             Title.original_title.ilike(like),  # type: ignore
         )
     )
+    if params.title_type:
+        stmt = stmt.where(Title.title_type == params.title_type)
+    if params.year_from and Title.start_year:
+        stmt = stmt.where(Title.start_year >= params.year_from)
     stmt = stmt.limit(params.size).offset((params.page - 1) * params.size)
     result = await session.execute(stmt)
     return result.scalars().all()

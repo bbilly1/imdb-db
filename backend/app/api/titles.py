@@ -1,12 +1,13 @@
 """title endpoints"""
 
+from typing import Any
+
 from api.params import CategoryParams, ListTitlesParams
 from dependencies import get_session
 from fastapi import APIRouter, Depends, HTTPException
-from models import Title, TitlePrincipal, TitleRating
+from models import Person, Title, TitlePrincipal, TitleRating
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/api", tags=["titles"])
 
@@ -15,22 +16,36 @@ router = APIRouter(prefix="/api", tags=["titles"])
 async def get_title(
     tconst: str,
     session: AsyncSession = Depends(get_session),
-) -> Title:
+) -> dict[str, Any]:
     """get single title"""
-    result = await session.execute(select(Title).options(selectinload(Title.rating)).where(Title.tconst == tconst))
-    title = result.scalar_one_or_none()
+    result = await session.execute(
+        select(Title, TitleRating)
+        .outerjoin(TitleRating, TitleRating.tconst == Title.tconst)
+        .where(Title.tconst == tconst)
+    )
+    row = result.one_or_none()
+    title = row[0] if row else None
     if title is None:
         raise HTTPException(status_code=404, detail="title not found")
-    return title
+    rating = row[1] if row else None
+    payload = title.model_dump()
+    if rating:
+        payload.update(rating.model_dump())
+        if payload.get("average_rating") is not None:
+            payload["average_rating"] = round(payload["average_rating"], 1)
+    else:
+        payload["average_rating"] = None
+        payload["num_votes"] = None
+    return payload
 
 
 @router.get("/titles")
 async def list_titles(
     params: ListTitlesParams = Depends(),
     session: AsyncSession = Depends(get_session),
-) -> list[Title]:
+) -> list[dict[str, Any]]:
     """get list of titles"""
-    stmt = select(Title).options(selectinload(Title.rating))
+    stmt = select(Title, TitleRating).outerjoin(TitleRating, TitleRating.tconst == Title.tconst)
 
     if params.genre:
         stmt = stmt.where(Title.genres.any(params.genre))  # type: ignore  # pylint: disable=no-member
@@ -39,13 +54,22 @@ async def list_titles(
     if params.title_type:
         stmt = stmt.where(Title.title_type == params.title_type)
     if params.min_rating is not None:
-        stmt = stmt.join(TitleRating, TitleRating.tconst == Title.tconst).where(
-            TitleRating.average_rating >= params.min_rating
-        )
+        stmt = stmt.where(TitleRating.average_rating >= params.min_rating)
 
     stmt = stmt.limit(params.size).offset((params.page - 1) * params.size)
     result = await session.execute(stmt)
-    return result.scalars().all()
+    payloads: list[dict[str, Any]] = []
+    for title, rating in result.all():
+        payload = title.model_dump()
+        if rating:
+            payload.update(rating.model_dump())
+            if payload.get("average_rating") is not None:
+                payload["average_rating"] = round(payload["average_rating"], 1)
+        else:
+            payload["average_rating"] = None
+            payload["num_votes"] = None
+        payloads.append(payload)
+    return payloads
 
 
 @router.get("/titles/{tconst}/principals")
@@ -53,13 +77,22 @@ async def list_title_principals(
     tconst: str,
     params: CategoryParams = Depends(),
     session: AsyncSession = Depends(get_session),
-) -> list[TitlePrincipal]:
+) -> list[dict[str, Any]]:
     """get list title principal"""
-    stmt = select(TitlePrincipal).where(TitlePrincipal.tconst == tconst)
+    stmt = (
+        select(TitlePrincipal, Person)
+        .join(Person, Person.nconst == TitlePrincipal.nconst)
+        .where(TitlePrincipal.tconst == tconst)
+    )
     if params.category:
         stmt = stmt.where(TitlePrincipal.category == params.category)
     stmt = stmt.order_by(TitlePrincipal.ordering)
 
     stmt = stmt.limit(params.size).offset((params.page - 1) * params.size)
     result = await session.execute(stmt)
-    return result.scalars().all()
+    payloads: list[dict[str, Any]] = []
+    for principal, person in result.all():
+        payload = principal.model_dump()
+        payload["person"] = person.model_dump()
+        payloads.append(payload)
+    return payloads

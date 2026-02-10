@@ -16,13 +16,24 @@ router = APIRouter(prefix="/api", tags=["people"])
 async def get_person(
     nconst: str,
     session: AsyncSession = Depends(get_session),
-) -> Person:
+) -> dict[str, Any]:
     """single person"""
     result = await session.execute(select(Person).where(Person.nconst == nconst))
     person = result.scalar_one_or_none()
     if person is None:
         raise HTTPException(status_code=404, detail="person not found")
-    return person
+    known_for_titles: list[dict[str, Any]] = []
+    if person.known_for_titles:
+        titles_result = await session.execute(select(Title).where(Title.tconst.in_(person.known_for_titles)))
+        titles = titles_result.scalars().all()
+        titles_by_id = {title.tconst: title for title in titles}
+        known_for_titles = [
+            titles_by_id[tconst].model_dump() for tconst in person.known_for_titles if tconst in titles_by_id
+        ]
+
+    payload = person.model_dump()
+    payload["known_for_titles"] = known_for_titles
+    return payload
 
 
 @router.get("/people/{nconst}/credits")

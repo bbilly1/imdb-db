@@ -23,8 +23,10 @@ class ListTitlesParams(PaginationParams):
 
 
 class ListSeriesEpisodesParams(PaginationParams):
-    season: Annotated[Optional[int], Query(default=None, ge=1)]
+    season_number: Annotated[Optional[int], Query(default=None, ge=1)]
 
 
 class SearchParams(PaginationParams):
     q: Annotated[str, Query(min_length=1)]
+    title_type: Annotated[Optional[str], Query(default=None)]
+    year_from: Annotated[Optional[int], Query(default=None, ge=1800)]
