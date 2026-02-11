@@ -2,15 +2,22 @@
 
 import asyncio
 import gzip
+import logging
 import shutil
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from io import BytesIO
 from os import environ
 from pathlib import Path
-from typing import AsyncIterator
+from time import perf_counter
+from typing import AsyncIterator, cast
 
 import aiohttp
 import asyncpg
+from database import AsyncSessionLocal
+from models import ImportTask
+
+logger = logging.getLogger(__name__)
 
 
 class IngestDataset(ABC):
@@ -37,6 +44,16 @@ class IngestDataset(ABC):
         return self.gz_path.with_suffix("")
 
     @property
+    def gz_size(self) -> int:
+        """compressed file size in bytes"""
+        return self.gz_path.stat().st_size
+
+    @property
+    def tsv_size(self) -> int:
+        """raw extracted file size in bytes"""
+        return self.tsv_path.stat().st_size
+
+    @property
     def url(self) -> str:
         """download url"""
         return f"{self.BASE_URL}/{self.dataset_name}.gz"
@@ -48,17 +65,35 @@ class IngestDataset(ABC):
 
     async def run(self) -> None:
         """run download and import"""
+        import_start_time = datetime.now(timezone.utc)
+        start = perf_counter()
+
+        logger.info("import started dataset=%s", self.dataset_name)
         await self._download_if_needed()
         self._extract_if_needed()
 
         async with self.pool.acquire() as conn:
+            db_conn = cast(asyncpg.Connection, conn)
             async with conn.transaction():
-                await self.create_staging_table(conn)
+                await self.create_staging_table(db_conn)
 
                 async for lines in self._read_tsv_in_chunks():
-                    await self.copy_chunk(conn, lines)
+                    await self.copy_chunk(db_conn, lines)
 
-                await self.merge_into_final(conn)
+                await self.merge_into_final(db_conn)
+
+        await self._record_import_task(
+            import_start_time=import_start_time,
+            duration=perf_counter() - start,
+        )
+
+        logger.info(
+            "import completed dataset=%s size_compressed=%s size_raw=%s duration=%.3fs",
+            self.dataset_name,
+            self.gz_size,
+            self.tsv_size,
+            perf_counter() - start,
+        )
 
     async def _download_if_needed(self) -> None:
         """download if not exist on file path"""
@@ -80,6 +115,23 @@ class IngestDataset(ABC):
         with gzip.open(self.gz_path, "rb") as gz:
             with open(self.tsv_path, "wb") as out:
                 shutil.copyfileobj(gz, out)
+
+    async def _record_import_task(
+        self,
+        import_start_time: datetime,
+        duration: float,
+    ) -> None:
+        """Persist one import task row for this dataset processing run."""
+        import_task = ImportTask(
+            filename=self.dataset_name,
+            size_compressed=self.gz_size,
+            size_raw=self.tsv_size,
+            import_start_time=import_start_time,
+            duration=duration,
+        )
+        async with AsyncSessionLocal() as session:
+            session.add(import_task)
+            await session.commit()
 
     async def _read_tsv_in_chunks(self) -> AsyncIterator[list[str]]:
         """partial read tsv file"""

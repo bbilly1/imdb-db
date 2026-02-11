@@ -1,8 +1,9 @@
 """define db models"""
 
+from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import ARRAY, TEXT
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -134,3 +135,16 @@ class TitlePrincipal(SQLModel, table=True):
         default=None,
         sa_column=Column(ARRAY(TEXT)),
     )
+
+
+class ImportTask(SQLModel, table=True):
+    """Track metadata and timing for each imported IMDb dataset file."""
+
+    __tablename__ = "import_tasks"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    filename: str
+    size_compressed: int
+    size_raw: int
+    import_start_time: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
+    duration: float
