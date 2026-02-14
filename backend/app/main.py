@@ -15,6 +15,7 @@ except ModuleNotFoundError:
 
 from os import environ
 
+from api.ingest import router as ingest_router
 from api.params import PaginationParams
 from api.people import router as people_router
 from api.search import router as search_router
@@ -35,6 +36,7 @@ app.include_router(titles_router)
 app.include_router(series_router)
 app.include_router(people_router)
 app.include_router(search_router)
+app.include_router(ingest_router)
 
 
 @app.on_event("startup")

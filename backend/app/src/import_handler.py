@@ -15,37 +15,45 @@ from src.import_title_ratings import IngestTitleRatings
 
 logger = logging.getLogger(__name__)
 
+INGEST_CLASSES: tuple[Type[IngestDataset], ...] = (
+    IngestTitleBasics,
+    IngestNameBasics,
+    IngestTitleRatings,
+    IngestTitleEpisodes,
+    IngestTitleAkas,
+    IngestTitlePrincipals,
+)
+INGEST_BY_DATASET_NAME: dict[str, Type[IngestDataset]] = {
+    ingest_class.DATASET_NAME: ingest_class for ingest_class in INGEST_CLASSES
+}
+SUPPORTED_DATASET_NAMES: tuple[str, ...] = tuple(INGEST_BY_DATASET_NAME.keys())
+
+
+def resolve_datasets(
+    dataset_names: list[str] | None,
+) -> tuple[list[Type[IngestDataset]], list[str]]:
+    """resolve and validate selected dataset names"""
+    if dataset_names is None:
+        return list(INGEST_BY_DATASET_NAME.values()), list(SUPPORTED_DATASET_NAMES)
+
+    selected_classes: list[Type[IngestDataset]] = []
+    selected_dataset_names: list[str] = []
+    for dataset_name in dataset_names:
+        ingest_class = INGEST_BY_DATASET_NAME.get(dataset_name)
+        if ingest_class is None:
+            raise ValueError(f"Unsupported dataset_name: {dataset_name}")
+        selected_classes.append(ingest_class)
+        selected_dataset_names.append(dataset_name)
+
+    return selected_classes, selected_dataset_names
+
 
 async def import_datasets(dataset_names: list[str] | None = None) -> None:
     """run all imports, or selected imports by dataset names"""
 
-    ingest_classes: list[Type[IngestDataset]] = [
-        IngestTitleBasics,
-        IngestNameBasics,
-        IngestTitleRatings,
-        IngestTitleEpisodes,
-        IngestTitleAkas,
-        IngestTitlePrincipals,
-    ]
-    ingest_by_dataset_name: dict[str, Type[IngestDataset]] = {
-        ingest_class.DATASET_NAME: ingest_class for ingest_class in ingest_classes
-    }
-
     pool = await asyncpg.create_pool(dsn=environ["DATABASE_URL_SYNC"])
     try:
-        if dataset_names is None:
-            selected_classes = list(ingest_by_dataset_name.values())
-            selected_dataset_names = list(ingest_by_dataset_name.keys())
-        else:
-            selected_classes = []
-            selected_dataset_names = []
-            for dataset_name in dataset_names:
-                ingest_class = ingest_by_dataset_name.get(dataset_name)
-                if ingest_class is None:
-                    raise ValueError(f"Unsupported dataset_name: {dataset_name}")
-
-                selected_classes.append(ingest_class)
-                selected_dataset_names.append(dataset_name)
+        selected_classes, selected_dataset_names = resolve_datasets(dataset_names)
 
         logger.info(
             "Starting dataset imports datasets=%s",
