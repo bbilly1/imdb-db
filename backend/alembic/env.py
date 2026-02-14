@@ -2,6 +2,7 @@
 
 import os
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -13,12 +14,9 @@ from app.models import *
 try:
     from dotenv import load_dotenv
 
-    print("load from local .env")
-    ENV_PATH = "app/.env"
-    if not os.path.exists(ENV_PATH):
-        raise FileNotFoundError
-
-    load_dotenv(ENV_PATH)
+    env_path = Path(__file__).resolve().parents[1] / "app" / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
 except ImportError:
     pass
 
