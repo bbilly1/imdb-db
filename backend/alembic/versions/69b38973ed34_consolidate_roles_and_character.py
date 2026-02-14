@@ -26,7 +26,15 @@ def upgrade() -> None:
     op.alter_column('title_principals', 'characters',
                existing_type=sa.VARCHAR(),
                type_=postgresql.ARRAY(sa.TEXT()),
-               existing_nullable=True)
+               existing_nullable=True,
+               postgresql_using=(
+                   "CASE "
+                   "WHEN characters IS NULL OR btrim(characters) = '' OR characters = '\\\\N' THEN NULL "
+                   "WHEN left(ltrim(characters), 1) = '[' THEN "
+                   "string_to_array(replace(trim(BOTH '[]' FROM characters), '\"', ''), ',') "
+                   "ELSE ARRAY[characters] "
+                   "END"
+               ))
     op.create_index(op.f('ix_title_principals_category'), 'title_principals', ['category'], unique=False)
     op.create_index(op.f('ix_title_principals_nconst'), 'title_principals', ['nconst'], unique=False)
     op.create_index(op.f('ix_title_principals_tconst'), 'title_principals', ['tconst'], unique=False)
@@ -42,7 +50,8 @@ def downgrade() -> None:
     op.alter_column('title_principals', 'characters',
                existing_type=postgresql.ARRAY(sa.TEXT()),
                type_=sa.VARCHAR(),
-               existing_nullable=True)
+               existing_nullable=True,
+               postgresql_using="array_to_string(characters, ',')")
     op.create_table('title_writers',
     sa.Column('tconst', sa.VARCHAR(), autoincrement=False, nullable=False),
     sa.Column('nconst', sa.VARCHAR(), autoincrement=False, nullable=False),
