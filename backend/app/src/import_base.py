@@ -65,7 +65,8 @@ class IngestDataset(ABC):
     @property
     def staging_table(self) -> str:
         """staging table"""
-        return f"staging_{self.dataset_name.rstrip(".tsv").replace(".", "_")}"
+        dataset_slug = self.dataset_name.removesuffix(".tsv").replace(".", "_")
+        return f"staging_{dataset_slug}"
 
     async def run(self) -> None:
         """run download and import"""

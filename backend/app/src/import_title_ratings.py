@@ -25,10 +25,13 @@ class IngestTitleRatings(IngestDataset):
             f"""
             INSERT INTO title_ratings (tconst, average_rating, num_votes)
             SELECT
-                tconst,
-                average_rating,
-                num_votes
-            FROM {self.staging_table}
+                s.tconst,
+                s.average_rating,
+                s.num_votes
+            FROM {self.staging_table} s
+            WHERE EXISTS (
+                SELECT 1 FROM titles t WHERE t.tconst = s.tconst
+            )
             ON CONFLICT (tconst) DO UPDATE
             SET
                 average_rating = EXCLUDED.average_rating,
