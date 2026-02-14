@@ -7,8 +7,7 @@ from src.import_base import IngestDataset
 class IngestNameBasics(IngestDataset):
     """ingest dataset"""
 
-    def __init__(self, pool: asyncpg.Pool):
-        super().__init__("name.basics.tsv", pool)
+    DATASET_NAME = "name.basics.tsv"
 
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:
         await conn.execute(

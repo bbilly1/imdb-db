@@ -10,7 +10,7 @@ from io import BytesIO
 from os import environ
 from pathlib import Path
 from time import perf_counter
-from typing import AsyncIterator, cast
+from typing import AsyncIterator, ClassVar, cast
 
 import aiohttp
 import asyncpg
@@ -28,9 +28,13 @@ class IngestDataset(ABC):
     CHUNK_SIZE_LINES = 100_000
     BASE_URL = "https://datasets.imdbws.com"
     CACHE_DIR = environ["CACHE_DIR"]
+    DATASET_NAME: ClassVar[str] = ""
 
-    def __init__(self, dataset_name: str, pool: asyncpg.Pool):
-        self.dataset_name = dataset_name
+    def __init__(self, pool: asyncpg.Pool):
+        if not self.DATASET_NAME:
+            raise NotImplementedError(f"{self.__class__.__name__} must define DATASET_NAME")
+
+        self.dataset_name = self.DATASET_NAME
         self.pool = pool
 
     @property
