@@ -36,11 +36,12 @@ class IngestDataset(ABC):
 
         self.dataset_name = self.DATASET_NAME
         self.pool = pool
+        self.iso_date = datetime.now().date().isoformat()
 
     @property
     def gz_path(self) -> Path:
         """gzip path"""
-        return Path(self.CACHE_DIR) / f"{self.dataset_name}.gz"
+        return Path(self.CACHE_DIR) / f"{self.dataset_name}_{self.iso_date}.gz"
 
     @property
     def tsv_path(self) -> Path:
@@ -80,11 +81,13 @@ class IngestDataset(ABC):
         async with self.pool.acquire() as conn:
             db_conn = cast(asyncpg.Connection, conn)
             async with conn.transaction():
+                logger.info("ingest into temporary table staging_table=%s", self.staging_table)
                 await self.create_staging_table(db_conn)
 
                 async for lines in self._read_tsv_in_chunks():
                     await self.copy_chunk(db_conn, lines)
 
+                logger.info("merge temporary table into final table")
                 await self.merge_into_final(db_conn)
 
         await self._record_import_task(
@@ -100,11 +103,15 @@ class IngestDataset(ABC):
             perf_counter() - start,
         )
 
+        if Path(self.gz_path).exists():
+            Path(self.gz_path).unlink()
+
     async def _download_if_needed(self) -> None:
         """download if not exist on file path"""
-        if self.gz_path.exists():
+        if self.gz_path.exists() or self.tsv_path.exists():
             return
 
+        logger.info("download dataset to gz_path=%s", self.gz_path)
         async with aiohttp.ClientSession() as session:
             async with session.get(self.url) as resp:
                 resp.raise_for_status()
@@ -117,6 +124,7 @@ class IngestDataset(ABC):
         if self.tsv_path.exists():
             return
 
+        logger.info("extract gz archive to tsv_path=%s", self.tsv_path)
         with gzip.open(self.gz_path, "rb") as gz:
             with open(self.tsv_path, "wb") as out:
                 shutil.copyfileobj(gz, out)
