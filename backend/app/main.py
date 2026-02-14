@@ -16,16 +16,11 @@ except ModuleNotFoundError:
 from os import environ
 
 from api.ingest import router as ingest_router
-from api.params import PaginationParams
 from api.people import router as people_router
 from api.search import router as search_router
 from api.series import router as series_router
 from api.titles import router as titles_router
-from dependencies import get_session
-from fastapi import Depends, FastAPI
-from models import ImportTask
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import FastAPI
 
 app = FastAPI(
     title="IMDb Read-Only API",
@@ -49,27 +44,3 @@ async def on_startup() -> None:
 async def api_is_up():
     """hello world"""
     return {"ping": "pong"}
-
-
-@app.get("/api/import-tasks")
-async def list_import_tasks(
-    params: PaginationParams = Depends(),
-    session: AsyncSession = Depends(get_session),
-) -> list[dict]:
-    """list paginated import task records"""
-    stmt = (
-        select(ImportTask)
-        .order_by(ImportTask.import_start_time)
-        .limit(params.size)
-        .offset((params.page - 1) * params.size)
-    )
-    result = await session.execute(stmt)
-    tasks = list(result.scalars().all())
-    return [
-        {
-            **task.model_dump(),
-            "size_compressed_mb": round(task.size_compressed / (1024 * 1024), 2),
-            "size_raw_mb": round(task.size_raw / (1024 * 1024), 2),
-        }
-        for task in tasks
-    ]
