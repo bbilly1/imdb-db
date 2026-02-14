@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""cli interface"""
+
+from pathlib import Path
+
+try:
+
+    from dotenv import load_dotenv
+
+    if Path(".env").exists():
+        print("loading local .env file")
+        load_dotenv(".env")
+
+except ModuleNotFoundError:
+    pass
+
+import asyncio
+import logging
+from typing import Annotated
+
+import typer
+
+app = typer.Typer(help="IMDb ingestion CLI")
+DATASET_OPTIONS = (
+    "title.basics.tsv",
+    "name.basics.tsv",
+    "title.ratings.tsv",
+    "title.episode.tsv",
+    "title.akas.tsv",
+    "title.principals.tsv",
+)
+
+
+@app.command()
+def ingest(
+    dataset: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--dataset",
+            "-d",
+            help=("Dataset filename filter. Repeat to run multiple ingests. " f"Options: {', '.join(DATASET_OPTIONS)}"),
+        ),
+    ] = None,
+) -> None:
+    """Run dataset ingestion.
+
+    If no datasets are provided, all dataset ingests are run.
+    """
+    from src.import_handler import import_datasets
+
+    try:
+        asyncio.run(import_datasets(dataset_names=dataset))
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    app()
