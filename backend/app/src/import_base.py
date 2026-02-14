@@ -71,7 +71,7 @@ class IngestDataset(ABC):
 
     async def run(self) -> None:
         """run download and import"""
-        if Path(self.gz_path).exists():
+        if self.tsv_path.exists():
             logger.info("skip, already imported, dataset=%s", self.dataset_name)
             return
 
