@@ -12,33 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 router = APIRouter(prefix="/api", tags=["titles"])
 
 
-@router.get("/titles/{tconst}")
-async def get_title(
-    tconst: str,
-    session: AsyncSession = Depends(get_session),
-) -> dict[str, Any]:
-    """get single title"""
-    result = await session.execute(
-        select(Title, TitleRating)
-        .outerjoin(TitleRating, TitleRating.tconst == Title.tconst)
-        .where(Title.tconst == tconst)
-    )
-    row = result.one_or_none()
-    title = row[0] if row else None
-    if title is None:
-        raise HTTPException(status_code=404, detail="title not found")
-    rating = row[1] if row else None
-    payload = title.model_dump()
-    if rating:
-        payload.update(rating.model_dump())
-        if payload.get("average_rating") is not None:
-            payload["average_rating"] = round(payload["average_rating"], 1)
-    else:
-        payload["average_rating"] = None
-        payload["num_votes"] = None
-    return payload
-
-
 @router.get("/titles")
 async def list_titles(
     params: ListTitlesParams = Depends(),
@@ -70,6 +43,33 @@ async def list_titles(
             payload["num_votes"] = None
         payloads.append(payload)
     return payloads
+
+
+@router.get("/titles/{tconst}")
+async def get_title(
+    tconst: str,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """get single title"""
+    result = await session.execute(
+        select(Title, TitleRating)
+        .outerjoin(TitleRating, TitleRating.tconst == Title.tconst)
+        .where(Title.tconst == tconst)
+    )
+    row = result.one_or_none()
+    title = row[0] if row else None
+    if title is None:
+        raise HTTPException(status_code=404, detail="title not found")
+    rating = row[1] if row else None
+    payload = title.model_dump()
+    if rating:
+        payload.update(rating.model_dump())
+        if payload.get("average_rating") is not None:
+            payload["average_rating"] = round(payload["average_rating"], 1)
+    else:
+        payload["average_rating"] = None
+        payload["num_votes"] = None
+    return payload
 
 
 @router.get("/titles/{tconst}/principals")
