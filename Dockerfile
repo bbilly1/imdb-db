@@ -1,8 +1,13 @@
 FROM python:3.13.11-slim-trixie
 
+ARG GIT_COMMIT=unknown
+ARG GIT_TAG=0.0.1
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    CACHE_DIR=/data/cache
+    CACHE_DIR=/data/cache \
+    GIT_COMMIT=${GIT_COMMIT} \
+    GIT_TAG=${GIT_TAG}
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends tini \

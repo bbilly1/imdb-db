@@ -26,9 +26,13 @@ from fastapi import FastAPI
 logging.basicConfig(level=logging.INFO)
 logging.getLogger().setLevel(logging.INFO)
 
+git_tag = environ.get("GIT_TAG", "dev")
+git_commit = environ.get("GIT_COMMIT", "unknown")
+
 app = FastAPI(
     title="IMDb Read-Only API",
-    version="0.0.1",
+    version=git_tag,
+    description=f"build tag={git_tag} commit={git_commit}",
 )
 
 app.include_router(titles_router)
@@ -47,4 +51,8 @@ async def on_startup() -> None:
 @app.get("/api")
 async def api_is_up():
     """hello world"""
-    return {"ping": "pong"}
+    return {
+        "ping": "pong",
+        "git_tag": git_tag,
+        "git_commit": git_commit,
+    }
