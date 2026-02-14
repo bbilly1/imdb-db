@@ -1,5 +1,6 @@
 """app entrypoing"""
 
+import logging
 from pathlib import Path
 
 try:
@@ -21,6 +22,9 @@ from api.search import router as search_router
 from api.series import router as series_router
 from api.titles import router as titles_router
 from fastapi import FastAPI
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 
 app = FastAPI(
     title="IMDb Read-Only API",
