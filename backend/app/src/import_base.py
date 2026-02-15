@@ -51,12 +51,18 @@ class IngestDataset(ABC):
     @property
     def gz_size(self) -> int:
         """compressed file size in bytes"""
-        return self.gz_path.stat().st_size
+        if self.gz_path.exists():
+            return self.gz_path.stat().st_size
+
+        return 0
 
     @property
     def tsv_size(self) -> int:
         """raw extracted file size in bytes"""
-        return self.tsv_path.stat().st_size
+        if self.tsv_path.exists():
+            return self.tsv_path.stat().st_size
+
+        return 0
 
     @property
     def url(self) -> str:
@@ -85,12 +91,14 @@ class IngestDataset(ABC):
         async with self.pool.acquire() as conn:
             db_conn = cast(asyncpg.Connection, conn)
             async with conn.transaction():
+                await db_conn.execute("SET LOCAL synchronous_commit = off")
                 logger.info("ingest into temporary table staging_table=%s", self.staging_table)
                 await self.create_staging_table(db_conn)
 
                 async for lines in self._read_tsv_in_chunks():
                     await self.copy_chunk(db_conn, lines)
 
+                await db_conn.execute(f"ANALYZE {self.staging_table}")
                 logger.info("merge temporary table into final table")
                 await self.merge_into_final(db_conn)
 
@@ -166,7 +174,11 @@ class IngestDataset(ABC):
                 if chunk:
                     yield chunk
 
-        for chunk in await loop.run_in_executor(None, lambda: list(generator())):
+        iterator = iter(generator())
+        while True:
+            chunk = await loop.run_in_executor(None, lambda: next(iterator, None))
+            if chunk is None:
+                break
             yield chunk
 
     async def copy_chunk(self, conn: asyncpg.Connection, lines: list[str]) -> None:
@@ -185,6 +197,10 @@ class IngestDataset(ABC):
             null="\\N",
             quote="\b",
         )
+
+    async def _is_table_empty(self, conn: asyncpg.Connection, table_name: str) -> bool:
+        """check if final target table has rows"""
+        return bool(await conn.fetchval(f"SELECT NOT EXISTS (SELECT 1 FROM {table_name} LIMIT 1)"))
 
     @abstractmethod
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:

@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import BigInteger, Column, DateTime
 from sqlalchemy.dialects.postgresql import ARRAY, TEXT
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -144,7 +144,7 @@ class ImportTask(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     filename: str
-    size_compressed: int
-    size_raw: int
+    size_compressed: int = Field(sa_column=Column(BigInteger, nullable=False))
+    size_raw: int = Field(sa_column=Column(BigInteger, nullable=False))
     import_start_time: datetime = Field(sa_column=Column(DateTime(timezone=True), nullable=False))
     duration: float

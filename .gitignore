@@ -5,6 +5,9 @@ backend/app/.env
 # pg
 data/
 
+# docker dev
+docker-compose.override.yml
+
 # python
 .venv
 .mypy_cache

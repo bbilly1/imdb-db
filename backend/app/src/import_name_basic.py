@@ -24,6 +24,38 @@ class IngestNameBasics(IngestDataset):
         )
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
+        if await self._is_first_import(conn):
+            await self._insert_first_import(conn)
+            return
+
+        await self._upsert_existing(conn)
+
+    async def _is_first_import(self, conn: asyncpg.Connection) -> bool:
+        return await self._is_table_empty(conn, "people")
+
+    async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            INSERT INTO people (
+                nconst,
+                primary_name,
+                birth_year,
+                death_year,
+                primary_professions,
+                known_for_titles
+            )
+            SELECT
+                nconst,
+                primary_name,
+                birth_year,
+                death_year,
+                string_to_array(primary_professions, ','),
+                string_to_array(known_for_titles, ',')
+            FROM {self.staging_table}
+            """
+        )
+
+    async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
         await conn.execute(
             f"""
             INSERT INTO people (
@@ -48,6 +80,12 @@ class IngestNameBasics(IngestDataset):
                 birth_year = EXCLUDED.birth_year,
                 death_year = EXCLUDED.death_year,
                 primary_professions = EXCLUDED.primary_professions,
-                known_for_titles = EXCLUDED.known_for_titles;
+                known_for_titles = EXCLUDED.known_for_titles
+            WHERE
+                people.primary_name IS DISTINCT FROM EXCLUDED.primary_name
+                OR people.birth_year IS DISTINCT FROM EXCLUDED.birth_year
+                OR people.death_year IS DISTINCT FROM EXCLUDED.death_year
+                OR people.primary_professions IS DISTINCT FROM EXCLUDED.primary_professions
+                OR people.known_for_titles IS DISTINCT FROM EXCLUDED.known_for_titles;
             """
         )

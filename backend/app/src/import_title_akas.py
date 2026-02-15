@@ -26,6 +26,51 @@ class IngestTitleAkas(IngestDataset):
         )
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
+        if await self._is_first_import(conn):
+            await self._insert_first_import(conn)
+            return
+
+        await self._upsert_existing(conn)
+
+    async def _is_first_import(self, conn: asyncpg.Connection) -> bool:
+        return await self._is_table_empty(conn, "title_akas")
+
+    async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            INSERT INTO title_akas (
+                title_id,
+                ordering,
+                title,
+                region,
+                language,
+                types,
+                attributes,
+                is_original
+            )
+            SELECT
+                s.title_id,
+                s.ordering,
+                s.title,
+                s.region,
+                s.language,
+                CASE
+                    WHEN s.types IS NULL THEN NULL
+                    ELSE string_to_array(s.types, ',')
+                END,
+                CASE
+                    WHEN s.attributes IS NULL THEN NULL
+                    ELSE string_to_array(s.attributes, ',')
+                END,
+                s.is_original
+            FROM {self.staging_table} s
+            WHERE EXISTS (
+                SELECT 1 FROM titles t WHERE t.tconst = s.title_id
+            )
+            """
+        )
+
+    async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
         await conn.execute(
             f"""
             INSERT INTO title_akas (
@@ -64,6 +109,13 @@ class IngestTitleAkas(IngestDataset):
                 language = EXCLUDED.language,
                 types = EXCLUDED.types,
                 attributes = EXCLUDED.attributes,
-                is_original = EXCLUDED.is_original;
+                is_original = EXCLUDED.is_original
+            WHERE
+                title_akas.title IS DISTINCT FROM EXCLUDED.title
+                OR title_akas.region IS DISTINCT FROM EXCLUDED.region
+                OR title_akas.language IS DISTINCT FROM EXCLUDED.language
+                OR title_akas.types IS DISTINCT FROM EXCLUDED.types
+                OR title_akas.attributes IS DISTINCT FROM EXCLUDED.attributes
+                OR title_akas.is_original IS DISTINCT FROM EXCLUDED.is_original;
             """
         )
