@@ -23,7 +23,10 @@ from api.series import router as series_router
 from api.titles import router as titles_router
 from fastapi import FastAPI
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s][%(levelname)s][%(name)s] %(message)s",
+)
 logging.getLogger().setLevel(logging.INFO)
 
 git_tag = environ.get("GIT_TAG", "dev")
