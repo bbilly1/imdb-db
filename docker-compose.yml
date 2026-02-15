@@ -1,10 +1,10 @@
 services:
   imdb-api:
-    build:
-      context: .
+    image: ghcr.io/bbilly1/imdb-db
     restart: "unless-stopped"
-    env_file:
-      - ./env/api.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://imdb-db:secret123@imdb-postgres:5432/imdb-db
+      - DATABASE_URL_SYNC=postgresql://imdb-db:secret123@imdb-postgres:5432/imdb-db
     ports:
       - 127.0.0.1:8000:8000
     volumes:
@@ -16,10 +16,12 @@ services:
     image: postgres:17  
     container_name: "imdb-postgres"
     restart: "unless-stopped"
-    ports:
-      - 127.0.0.1:5432:5432
-    env_file:
-      - ./env/pg.env
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=imdb-db
+      - POSTGRES_PASSWORD=secret123
+      - POSTGRES_DB=imdb-db
     volumes:   
       - ./data/volume/pg/data:/var/lib/postgresql/data/
     healthcheck:
