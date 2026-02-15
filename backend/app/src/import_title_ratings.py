@@ -21,6 +21,31 @@ class IngestTitleRatings(IngestDataset):
         )
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
+        if await self._is_first_import(conn):
+            await self._insert_first_import(conn)
+            return
+
+        await self._upsert_existing(conn)
+
+    async def _is_first_import(self, conn: asyncpg.Connection) -> bool:
+        return await self._is_table_empty(conn, "title_ratings")
+
+    async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            INSERT INTO title_ratings (tconst, average_rating, num_votes)
+            SELECT
+                s.tconst,
+                s.average_rating,
+                s.num_votes
+            FROM {self.staging_table} s
+            WHERE EXISTS (
+                SELECT 1 FROM titles t WHERE t.tconst = s.tconst
+            )
+            """
+        )
+
+    async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
         await conn.execute(
             f"""
             INSERT INTO title_ratings (tconst, average_rating, num_votes)
@@ -35,6 +60,9 @@ class IngestTitleRatings(IngestDataset):
             ON CONFLICT (tconst) DO UPDATE
             SET
                 average_rating = EXCLUDED.average_rating,
-                num_votes = EXCLUDED.num_votes;
+                num_votes = EXCLUDED.num_votes
+            WHERE
+                title_ratings.average_rating IS DISTINCT FROM EXCLUDED.average_rating
+                OR title_ratings.num_votes IS DISTINCT FROM EXCLUDED.num_votes;
             """
         )

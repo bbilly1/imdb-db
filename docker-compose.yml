@@ -33,5 +33,6 @@ services:
       start_period: 5s
     command: |
         -c min_wal_size=2GB
-        -c max_wal_size=10GB
+        -c max_wal_size=20GB
+        -c checkpoint_timeout=15min
         -c checkpoint_completion_target=0.9

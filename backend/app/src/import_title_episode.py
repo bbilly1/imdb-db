@@ -22,6 +22,40 @@ class IngestTitleEpisodes(IngestDataset):
         )
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
+        if await self._is_first_import(conn):
+            await self._insert_first_import(conn)
+            return
+
+        await self._upsert_existing(conn)
+
+    async def _is_first_import(self, conn: asyncpg.Connection) -> bool:
+        return await self._is_table_empty(conn, "episodes")
+
+    async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
+        await conn.execute(
+            f"""
+            INSERT INTO episodes (
+                tconst,
+                parent_tconst,
+                season_number,
+                episode_number
+            )
+            SELECT
+                e.tconst,
+                e.parent_tconst,
+                e.season_number,
+                e.episode_number
+            FROM {self.staging_table} e
+            WHERE EXISTS (
+                SELECT 1 FROM titles t WHERE t.tconst = e.tconst
+            )
+            AND EXISTS (
+                SELECT 1 FROM titles p WHERE p.tconst = e.parent_tconst
+            )
+            """
+        )
+
+    async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
         await conn.execute(
             f"""
             INSERT INTO episodes (
@@ -46,6 +80,10 @@ class IngestTitleEpisodes(IngestDataset):
             SET
                 parent_tconst = EXCLUDED.parent_tconst,
                 season_number = EXCLUDED.season_number,
-                episode_number = EXCLUDED.episode_number;
+                episode_number = EXCLUDED.episode_number
+            WHERE
+                episodes.parent_tconst IS DISTINCT FROM EXCLUDED.parent_tconst
+                OR episodes.season_number IS DISTINCT FROM EXCLUDED.season_number
+                OR episodes.episode_number IS DISTINCT FROM EXCLUDED.episode_number;
             """
         )

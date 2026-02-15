@@ -13,8 +13,8 @@ Your local IMDb Database.
 
 All datasets are imported from official IMDb sources. They are provided by imdb for local private personal and non-commercial use. For more details see [here](https://developer.imdb.com/non-commercial-datasets/).
 
-| Name                  | Comment                       | Count | Size Compressed | Size raw | Size indexed | Processing  |
-|-----------------------|-------------------------------|-------|-----------------|----------|--------------|-------------|
+| Name                  | Comment                       | Count | Size Compressed | Size raw | Size indexed | Ingest  | Upsert  |
+|-----------------------|-------------------------------|-------|-----------------|----------|--------------|---------|---------|
 | title.basics.tsv      | All titles                    |
 | name.basics.tsv       | All names of people           |
 | title.ratings.tsv     | All ratings of titles         |
