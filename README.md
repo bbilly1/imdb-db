@@ -13,16 +13,21 @@ Your local IMDb Database.
 
 All datasets are imported from official IMDb sources. They are provided by imdb for local private personal and non-commercial use. For more details see [here](https://developer.imdb.com/non-commercial-datasets/).
 
-| Name                  | Comment                       | Count | Size Compressed | Size raw | Size indexed | Ingest  | Upsert  |
-|-----------------------|-------------------------------|-------|-----------------|----------|--------------|---------|---------|
-| title.basics.tsv      | All titles                    |
-| name.basics.tsv       | All names of people           |
-| title.ratings.tsv     | All ratings of titles         |
-| title.episode.tsv     | Episode to season mappings    |
-| title.akas.tsv        | Alternative names for titles  |
-| title.principals.tsv  | People to title relations     |
+| Name                  | Comment                       | Rows  | .tsv.gz | .tsv   | indexed | Ingest  | Upsert  |
+|-----------------------|-------------------------------|-------|---------|--------|---------|---------|---------|
+| title.basics.tsv      | All titles                    | 12 M  | 220 MB  | 1 GB   | 2 GB    | 1m 10s  |         |
+| name.basics.tsv       | All names of people           | 15 M  | 300 MB  | 1 GB   | 2.4 GB  | 1m 40s  |         |
+| title.ratings.tsv     | All ratings of titles         | 232 M | 10 MB   | 30 MB  | 220 MB  | 30s     |         |
+| title.episode.tsv     | Episode to season mappings    | 10 M  | 50 MB   | 250 MB | 1.4 GB  | 5m      |         |
+| title.akas.tsv        | Alternative names for titles  | 55 M  | 500 MB  | 2.7 GB | 12.6 GB | 17m     |         |
+| title.principals.tsv  | People to title relations     | 98 M  | 750 MB  | 4.3 GB | 24 GB   | 1h      |         |
 
-You don't have to import all datasets. But make sure the relations can be established, e.g. importing the title.akas dataset without the title.basics dataset would not make sense.
+- Ingest and Upsert times are largely IO bound.
+- These values are from local testing on consumer grade NVMe drives, YMMV.
+
+You don't have to import all datasets. 
+- Make sure the relations can be established, e.g. importing the `title.akas` dataset without the `title.basics` dataset would not make sense.
+- You can do partial upserts, e.g. refresh only `title.ratings`. This will ignore titles for new ratings missing from `title.basics`. To avoid that, upsert `title.basics` and `title.ratings` together.
 
 ## Installation
 
