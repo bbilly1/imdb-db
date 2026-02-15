@@ -1,6 +1,7 @@
 services:
   imdb-api:
     image: ghcr.io/bbilly1/imdb-db
+    container_name: "imdb-api"
     restart: "unless-stopped"
     environment:
       - DATABASE_URL=postgresql+asyncpg://imdb-db:secret123@imdb-postgres:5432/imdb-db
