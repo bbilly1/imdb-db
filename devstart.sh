@@ -26,7 +26,7 @@ if [ $? != 0 ]; then
 
     # compose
     tmux new-session -d -s $SESSION_NAME -n "dev"
-    tmux send-keys -t $SESSION_NAME:"dev" "docker compose pull && docker compose up -d imdb-postgres && docker compose logs -f" C-m
+    tmux send-keys -t $SESSION_NAME:"dev" "docker compose pull imdb-postgres && docker compose up -d imdb-postgres && docker compose logs -f" C-m
     wait_for_pg
 
     # fastapi
