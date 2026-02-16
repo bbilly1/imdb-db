@@ -1,10 +1,10 @@
 """title endpoints"""
 
-from typing import Any
+from typing import Annotated, Any
 
 from api.params import CategoryParams, ListTitlesParams
 from dependencies import get_session
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from models import Person, Title, TitlePrincipal, TitleRating
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,11 +15,14 @@ router = APIRouter(prefix="/api", tags=["titles"])
 @router.get("/titles")
 async def list_titles(
     params: ListTitlesParams = Depends(),
+    tconst: Annotated[list[str] | None, Query()] = None,
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
     """get list of titles"""
     stmt = select(Title, TitleRating).outerjoin(TitleRating, TitleRating.tconst == Title.tconst)
 
+    if tconst:
+        stmt = stmt.where(Title.tconst.in_(tconst))  # type: ignore  # pylint: disable=no-member
     if params.genre:
         stmt = stmt.where(Title.genres.any(params.genre))  # type: ignore  # pylint: disable=no-member
     if params.year_from and Title.start_year:
@@ -42,6 +45,7 @@ async def list_titles(
             payload["average_rating"] = None
             payload["num_votes"] = None
         payloads.append(payload)
+
     return payloads
 
 
