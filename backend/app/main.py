@@ -21,7 +21,8 @@ from api.people import router as people_router
 from api.search import router as search_router
 from api.series import router as series_router
 from api.titles import router as titles_router
-from fastapi import FastAPI
+from dependencies import verify_bearer_token
+from fastapi import Depends, FastAPI
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,11 +39,11 @@ app = FastAPI(
     description=f"build tag={git_tag} commit={git_commit}",
 )
 
-app.include_router(titles_router)
-app.include_router(series_router)
-app.include_router(people_router)
-app.include_router(search_router)
-app.include_router(ingest_router)
+app.include_router(titles_router, dependencies=[Depends(verify_bearer_token)])
+app.include_router(series_router, dependencies=[Depends(verify_bearer_token)])
+app.include_router(people_router, dependencies=[Depends(verify_bearer_token)])
+app.include_router(search_router, dependencies=[Depends(verify_bearer_token)])
+app.include_router(ingest_router, dependencies=[Depends(verify_bearer_token)])
 
 
 @app.on_event("startup")

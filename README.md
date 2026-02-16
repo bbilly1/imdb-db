@@ -138,4 +138,8 @@ Build metadata is exposed by API using:
 
 ## Security Notes
 
-- There is no authentication on the API. Use only in trusted environments.
+Optionally set an `API_TOKEN` env var to enable authentication for the API. This expects an Auth header like so for example:
+
+```
+curl /api/stats -H "Authorization: Bearer xxxxxx"
+```
