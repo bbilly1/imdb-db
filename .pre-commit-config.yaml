@@ -29,5 +29,24 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v10.0.2
+    hooks:
+      - id: eslint
+        name: eslint-frontend
+        entry: npm run --prefix ./frontend lint
+        files: \.[jt]sx?$
+        types: [file]
+        language: node
+        pass_filenames: false
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        name: prettier-frontend
+        entry: npm run --prefix ./frontend format
+        language: node
+        files: ^frontend/
+        pass_filenames: false
 
 exclude: 'backend/alembic/.*'
