@@ -55,8 +55,4 @@ async def on_startup() -> None:
 @app.get("/api")
 async def api_is_up():
     """hello world"""
-    return {
-        "ping": "pong",
-        "git_tag": git_tag,
-        "git_commit": git_commit,
-    }
+    return {"ping": "pong", "git_tag": git_tag, "git_commit": git_commit, "has_auth": bool(environ.get("API_TOKEN"))}
