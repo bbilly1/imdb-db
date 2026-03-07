@@ -249,7 +249,7 @@ function App() {
           onLogout={handleLogout}
         />
 
-        <main className="mx-auto grid w-full max-w-[112rem] gap-5 px-4 py-6 lg:px-6">
+        <main className="mx-auto grid w-full max-w-448 gap-5 px-4 py-6 lg:px-6">
           <InputArea
             config={activeConfig}
             values={forms[activeConfig.id] ?? {}}
@@ -271,7 +271,7 @@ function App() {
   }
 
   return (
-    <div className="flex min-h-[100vh] flex-col bg-zinc-950 text-zinc-100">
+    <div className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100">
       <div className="grow">{renderGrowContent()}</div>
       <div className="shrink">
         <AppFooter />
