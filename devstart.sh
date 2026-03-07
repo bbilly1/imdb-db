@@ -37,6 +37,10 @@ if [ $? != 0 ]; then
     tmux split-window -v -t $SESSION_NAME:"dev.0" -l 50%
     tmux send-keys -t $SESSION_NAME:"dev.1" "source .venv/bin/activate && cd backend/app && ipython -i -c 'from main import *'" C-m
 
+    # frontend
+    tmux split-window -v -t $SESSION_NAME:"dev.2" -l 50%
+    tmux send-keys -t $SESSION_NAME:"dev.3" "source .venv/bin/activate && cd frontend && npm run dev" C-m
+
 fi
 
 tmux attach-session -t $SESSION_NAME

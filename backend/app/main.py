@@ -22,7 +22,8 @@ from api.search import router as search_router
 from api.series import router as series_router
 from api.titles import router as titles_router
 from dependencies import verify_bearer_token
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +39,8 @@ app = FastAPI(
     version=git_tag,
     description=f"build tag={git_tag} commit={git_commit}",
 )
+
+FRONTEND_DIST = Path("/app/frontend-dist")
 
 app.include_router(titles_router, dependencies=[Depends(verify_bearer_token)])
 app.include_router(series_router, dependencies=[Depends(verify_bearer_token)])
@@ -55,4 +58,26 @@ async def on_startup() -> None:
 @app.get("/api")
 async def api_is_up():
     """hello world"""
-    return {"ping": "pong", "git_tag": git_tag, "git_commit": git_commit, "has_auth": bool(environ.get("API_TOKEN"))}
+    return {
+        "ping": "pong",
+        "git_tag": git_tag,
+        "git_commit": git_commit,
+        "has_auth": bool(environ.get("API_TOKEN")),
+    }
+
+
+if FRONTEND_DIST.exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
+    logging.getLogger(__name__).info("serving frontend from %s", FRONTEND_DIST)
+else:
+    logging.getLogger(__name__).warning(
+        "frontend bundle not found at %s; run frontend dev server on http://localhost:5173 for local development",
+        FRONTEND_DIST,
+    )
+
+    @app.get("/")
+    async def frontend_not_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Frontend bundle is not available on this server. In local dev use http://localhost:5173.",
+        )

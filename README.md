@@ -13,17 +13,19 @@ Your local IMDb Database.
 
 All datasets are imported from official IMDb sources. They are provided by imdb for local private personal and non-commercial use. For more details see [here](https://developer.imdb.com/non-commercial-datasets/).
 
-| Name                  | Comment                       | Rows  | .tsv.gz | .tsv   | indexed | Ingest  | Upsert  |
-|-----------------------|-------------------------------|-------|---------|--------|---------|---------|---------|
-| title.basics.tsv      | All titles                    | 12 M  | 220 MB  | 1 GB   | 2 GB    | 1m 10s  |         |
-| name.basics.tsv       | All names of people           | 15 M  | 300 MB  | 1 GB   | 2.4 GB  | 1m 40s  |         |
-| title.ratings.tsv     | All ratings of titles         | 232 M | 10 MB   | 30 MB  | 220 MB  | 30s     |         |
-| title.episode.tsv     | Episode to season mappings    | 10 M  | 50 MB   | 250 MB | 1.4 GB  | 5m      |         |
-| title.akas.tsv        | Alternative names for titles  | 55 M  | 500 MB  | 2.7 GB | 12.6 GB | 17m     |         |
-| title.principals.tsv  | People to title relations     | 98 M  | 750 MB  | 4.3 GB | 24 GB   | 1h      |         |
+| Name                  | Comment                       | Rows  | .tsv.gz | .tsv   | indexed | Ingest  |
+|-----------------------|-------------------------------|-------|---------|--------|---------|---------|
+| title.basics.tsv      | All titles                    | 12 M  | 220 MB  | 1 GB   | 2 GB    | 1m 10s  |
+| name.basics.tsv       | All names of people           | 15 M  | 300 MB  | 1 GB   | 2.4 GB  | 1m 40s  |
+| title.ratings.tsv     | All ratings of titles         | 232 M | 10 MB   | 30 MB  | 220 MB  | 30s     |
+| title.episode.tsv     | Episode to season mappings    | 10 M  | 50 MB   | 250 MB | 1.4 GB  | 5m      |
+| title.akas.tsv        | Alternative names for titles  | 55 M  | 500 MB  | 2.7 GB | 12.6 GB | 17m     |
+| title.principals.tsv  | People to title relations     | 98 M  | 750 MB  | 4.3 GB | 24 GB   | 1h      |
 
-- Ingest and Upsert times are largely IO bound.
+- Ingest times are largely IO bound.
 - These values are from local testing on consumer grade NVMe drives, YMMV.
+- Upserts, aka subsequent ingests, can in some cases be faster, depending on the diff size or slower if the merging is complicated by foreign keys.
+- During import until the vakuum task from Postgres hits, expect larger filesystem usage than described here.
 
 You don't have to import all datasets. 
 - Make sure the relations can be established, e.g. importing the `title.akas` dataset without the `title.basics` dataset would not make sense.
