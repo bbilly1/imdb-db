@@ -41,7 +41,7 @@ export function InputArea({
       </div>
 
       {config.fields.length > 0 ? (
-        <div className="mt-4 grid gap-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {config.fields.map((field) => (
             <label key={field.key} className="grid gap-1 text-sm text-zinc-300">
               <span>{field.label}</span>
