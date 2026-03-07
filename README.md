@@ -8,6 +8,7 @@ Your local IMDb Database.
 - Index into Postgres.
 - Serve through a small API layer.
 - Built with Python and FastAPI.
+- Simple React frontend for exploring the API.
 
 ## Included Datasets
 
@@ -68,6 +69,7 @@ The docs are available at `/docs` or at `/openapi.json`.
 
 Available endpoints:
 
+- `/` React frontend
 - `GET /api`
 - `POST /api/ingest`
 - `GET /api/import-tasks`
@@ -124,6 +126,13 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 cd backend/app
 fastapi dev main.py
+```
+
+Frontend:
+```bash
+cd frontend
+npm i
+npm run dev
 ```
 
 `devstart.sh` also provides a tmux-based local dev workflow.
