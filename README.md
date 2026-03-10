@@ -18,7 +18,7 @@ All datasets are imported from official IMDb sources. They are provided by imdb 
 |-----------------------|-------------------------------|-------|---------|--------|---------|---------|
 | title.basics.tsv      | All titles                    | 12 M  | 220 MB  | 1 GB   | 2 GB    | 1m 10s  |
 | name.basics.tsv       | All names of people           | 15 M  | 300 MB  | 1 GB   | 2.4 GB  | 1m 40s  |
-| title.ratings.tsv     | All ratings of titles         | 232 M | 10 MB   | 30 MB  | 220 MB  | 30s     |
+| title.ratings.tsv     | All ratings of titles         | 2 M   | 10 MB   | 30 MB  | 220 MB  | 30s     |
 | title.episode.tsv     | Episode to season mappings    | 10 M  | 50 MB   | 250 MB | 1.4 GB  | 5m      |
 | title.akas.tsv        | Alternative names for titles  | 55 M  | 500 MB  | 2.7 GB | 12.6 GB | 17m     |
 | title.principals.tsv  | People to title relations     | 98 M  | 750 MB  | 4.3 GB | 24 GB   | 1h      |
