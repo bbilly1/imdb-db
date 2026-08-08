@@ -1,7 +1,9 @@
 """import interface"""
 
 import logging
+from collections import defaultdict
 from os import environ
+from pathlib import Path
 from typing import Type
 
 import asyncpg
@@ -27,6 +29,8 @@ INGEST_BY_DATASET_NAME: dict[str, Type[IngestDataset]] = {
     ingest_class.DATASET_NAME: ingest_class for ingest_class in INGEST_CLASSES
 }
 SUPPORTED_DATASET_NAMES: tuple[str, ...] = tuple(INGEST_BY_DATASET_NAME.keys())
+CACHE_DIR = Path(environ["CACHE_DIR"])
+DATASET_TO_KEEP = environ.get("DATASET_TO_KEEP")
 
 
 def resolve_datasets(
@@ -48,6 +52,29 @@ def resolve_datasets(
     return selected_classes, selected_dataset_names
 
 
+def clean_cache_dir():
+    """clean cache dir based on env var"""
+    if DATASET_TO_KEEP is None:
+        return
+
+    if not DATASET_TO_KEEP.isdigit():
+        raise ValueError("failed to parse DATASET_TO_KEEP, expected a none negative integer.")
+
+    dataset_to_keep_int = int(DATASET_TO_KEEP)
+
+    paths = sorted(list(CACHE_DIR.glob("*.tsv_*")), reverse=True)
+    archives = defaultdict(list)
+
+    for path in paths:
+        archive_type = path.name.split(".tsv_", 1)[0]
+        archives[archive_type].append(path)
+
+    for paths in archives.values():
+        for path in paths[dataset_to_keep_int:]:
+            logger.info("clean cached archive path=%s", path)
+            path.unlink()
+
+
 async def import_datasets(dataset_names: list[str] | None = None) -> None:
     """run all imports, or selected imports by dataset names"""
 
@@ -64,3 +91,5 @@ async def import_datasets(dataset_names: list[str] | None = None) -> None:
             await ingest_class(pool=pool).run()
     finally:
         await pool.close()
+
+    clean_cache_dir()

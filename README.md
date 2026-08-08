@@ -54,7 +54,10 @@ POSTGRES_DB=imdb-db
 The API container can run under your own user by adding for example `user: 1000:1000`. If you do that, make sure to also set the volume permissions correctly.
 
 - Interface is served on port 8000.
-- Expects a volume at `/data` in the container. This is where the downloaded datasets go and where the decompressed files are stored. Clean periodically. 
+- Expects a volume at `/data` in the container. This is where the downloaded datasets go and where the decompressed files are stored. 
+
+- Optionally set `DATASET_TO_KEEP` to an integer to automatically clean up older cached datasets, e.g. `DATASET_TO_KEEP=2` to keep newest two cached.
+- or clean periodically.
 
 For env vars, you'll need to provide both sync and async connection strings to postgres. E.g.:
 
