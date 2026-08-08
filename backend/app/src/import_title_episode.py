@@ -10,16 +10,14 @@ class IngestTitleEpisodes(IngestDataset):
     DATASET_NAME = "title.episode.tsv"
 
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
                 tconst TEXT,
                 parent_tconst TEXT,
                 season_number INTEGER,
                 episode_number INTEGER
             ) ON COMMIT DROP;
-            """
-        )
+            """)
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
         if await self._is_first_import(conn):
@@ -32,8 +30,7 @@ class IngestTitleEpisodes(IngestDataset):
         return await self._is_table_empty(conn, "episodes")
 
     async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO episodes (
                 tconst,
                 parent_tconst,
@@ -52,12 +49,10 @@ class IngestTitleEpisodes(IngestDataset):
             AND EXISTS (
                 SELECT 1 FROM titles p WHERE p.tconst = e.parent_tconst
             )
-            """
-        )
+            """)
 
     async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO episodes (
                 tconst,
                 parent_tconst,
@@ -85,5 +80,4 @@ class IngestTitleEpisodes(IngestDataset):
                 episodes.parent_tconst IS DISTINCT FROM EXCLUDED.parent_tconst
                 OR episodes.season_number IS DISTINCT FROM EXCLUDED.season_number
                 OR episodes.episode_number IS DISTINCT FROM EXCLUDED.episode_number;
-            """
-        )
+            """)

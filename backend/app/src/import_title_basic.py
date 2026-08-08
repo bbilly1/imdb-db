@@ -10,8 +10,7 @@ class IngestTitleBasics(IngestDataset):
     DATASET_NAME = "title.basics.tsv"
 
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
                 tconst TEXT,
                 title_type TEXT,
@@ -23,8 +22,7 @@ class IngestTitleBasics(IngestDataset):
                 runtime_minutes BIGINT,
                 genres TEXT
             ) ON COMMIT DROP
-            """
-        )
+            """)
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
         if await self._is_first_import(conn):
@@ -37,8 +35,7 @@ class IngestTitleBasics(IngestDataset):
         return await self._is_table_empty(conn, "titles")
 
     async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO titles (
                 tconst,
                 title_type,
@@ -61,12 +58,10 @@ class IngestTitleBasics(IngestDataset):
                 runtime_minutes,
                 string_to_array(genres, ',')
             FROM {self.staging_table}
-            """
-        )
+            """)
 
     async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO titles (
                 tconst,
                 title_type,
@@ -108,5 +103,4 @@ class IngestTitleBasics(IngestDataset):
                 OR titles.end_year IS DISTINCT FROM EXCLUDED.end_year
                 OR titles.runtime_minutes IS DISTINCT FROM EXCLUDED.runtime_minutes
                 OR titles.genres IS DISTINCT FROM EXCLUDED.genres
-            """
-        )
+            """)

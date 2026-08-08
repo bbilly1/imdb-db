@@ -10,8 +10,7 @@ class IngestTitlePrincipals(IngestDataset):
     DATASET_NAME = "title.principals.tsv"
 
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
                 tconst TEXT,
                 ordering INTEGER,
@@ -20,8 +19,7 @@ class IngestTitlePrincipals(IngestDataset):
                 job TEXT,
                 characters TEXT
             ) ON COMMIT DROP;
-            """
-        )
+            """)
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
         if await self._is_first_import(conn):
@@ -36,8 +34,7 @@ class IngestTitlePrincipals(IngestDataset):
     async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
         await self._drop_secondary_indexes(conn)
         try:
-            await conn.execute(
-                f"""
+            await conn.execute(f"""
                 INSERT INTO title_principals (
                     tconst,
                     ordering,
@@ -66,8 +63,7 @@ class IngestTitlePrincipals(IngestDataset):
                 AND EXISTS (
                     SELECT 1 FROM people p WHERE p.nconst = s.nconst
                 )
-                """
-            )
+                """)
         finally:
             await self._create_secondary_indexes(conn)
 
@@ -82,8 +78,7 @@ class IngestTitlePrincipals(IngestDataset):
         await conn.execute("CREATE INDEX IF NOT EXISTS ix_title_principals_category ON title_principals (category)")
 
     async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO title_principals (
                 tconst,
                 ordering,
@@ -123,5 +118,4 @@ class IngestTitlePrincipals(IngestDataset):
                 OR title_principals.category IS DISTINCT FROM EXCLUDED.category
                 OR title_principals.job IS DISTINCT FROM EXCLUDED.job
                 OR title_principals.characters IS DISTINCT FROM EXCLUDED.characters;
-            """
-        )
+            """)

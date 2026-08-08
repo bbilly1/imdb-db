@@ -10,8 +10,7 @@ class IngestNameBasics(IngestDataset):
     DATASET_NAME = "name.basics.tsv"
 
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
                 nconst TEXT,
                 primary_name TEXT,
@@ -20,8 +19,7 @@ class IngestNameBasics(IngestDataset):
                 primary_professions TEXT,
                 known_for_titles TEXT
             ) ON COMMIT DROP;
-            """
-        )
+            """)
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
         if await self._is_first_import(conn):
@@ -34,8 +32,7 @@ class IngestNameBasics(IngestDataset):
         return await self._is_table_empty(conn, "people")
 
     async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO people (
                 nconst,
                 primary_name,
@@ -52,12 +49,10 @@ class IngestNameBasics(IngestDataset):
                 string_to_array(primary_professions, ','),
                 string_to_array(known_for_titles, ',')
             FROM {self.staging_table}
-            """
-        )
+            """)
 
     async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO people (
                 nconst,
                 primary_name,
@@ -87,5 +82,4 @@ class IngestNameBasics(IngestDataset):
                 OR people.death_year IS DISTINCT FROM EXCLUDED.death_year
                 OR people.primary_professions IS DISTINCT FROM EXCLUDED.primary_professions
                 OR people.known_for_titles IS DISTINCT FROM EXCLUDED.known_for_titles;
-            """
-        )
+            """)

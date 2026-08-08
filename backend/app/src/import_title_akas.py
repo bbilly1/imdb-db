@@ -10,8 +10,7 @@ class IngestTitleAkas(IngestDataset):
     DATASET_NAME = "title.akas.tsv"
 
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
                 title_id TEXT,
                 ordering INTEGER,
@@ -22,8 +21,7 @@ class IngestTitleAkas(IngestDataset):
                 attributes TEXT,
                 is_original BOOLEAN
             ) ON COMMIT DROP;
-            """
-        )
+            """)
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
         if await self._is_first_import(conn):
@@ -36,8 +34,7 @@ class IngestTitleAkas(IngestDataset):
         return await self._is_table_empty(conn, "title_akas")
 
     async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO title_akas (
                 title_id,
                 ordering,
@@ -67,12 +64,10 @@ class IngestTitleAkas(IngestDataset):
             WHERE EXISTS (
                 SELECT 1 FROM titles t WHERE t.tconst = s.title_id
             )
-            """
-        )
+            """)
 
     async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO title_akas (
                 title_id,
                 ordering,
@@ -117,5 +112,4 @@ class IngestTitleAkas(IngestDataset):
                 OR title_akas.types IS DISTINCT FROM EXCLUDED.types
                 OR title_akas.attributes IS DISTINCT FROM EXCLUDED.attributes
                 OR title_akas.is_original IS DISTINCT FROM EXCLUDED.is_original;
-            """
-        )
+            """)

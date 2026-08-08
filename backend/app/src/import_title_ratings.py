@@ -10,15 +10,13 @@ class IngestTitleRatings(IngestDataset):
     DATASET_NAME = "title.ratings.tsv"
 
     async def create_staging_table(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             CREATE TEMP TABLE IF NOT EXISTS {self.staging_table} (
                 tconst TEXT,
                 average_rating REAL,
                 num_votes INT
             ) ON COMMIT DROP;
-            """
-        )
+            """)
 
     async def merge_into_final(self, conn: asyncpg.Connection) -> None:
         if await self._is_first_import(conn):
@@ -31,8 +29,7 @@ class IngestTitleRatings(IngestDataset):
         return await self._is_table_empty(conn, "title_ratings")
 
     async def _insert_first_import(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO title_ratings (tconst, average_rating, num_votes)
             SELECT
                 s.tconst,
@@ -42,12 +39,10 @@ class IngestTitleRatings(IngestDataset):
             WHERE EXISTS (
                 SELECT 1 FROM titles t WHERE t.tconst = s.tconst
             )
-            """
-        )
+            """)
 
     async def _upsert_existing(self, conn: asyncpg.Connection) -> None:
-        await conn.execute(
-            f"""
+        await conn.execute(f"""
             INSERT INTO title_ratings (tconst, average_rating, num_votes)
             SELECT
                 s.tconst,
@@ -64,5 +59,4 @@ class IngestTitleRatings(IngestDataset):
             WHERE
                 title_ratings.average_rating IS DISTINCT FROM EXCLUDED.average_rating
                 OR title_ratings.num_votes IS DISTINCT FROM EXCLUDED.num_votes;
-            """
-        )
+            """)
