@@ -34,8 +34,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/${{ github.repository }}:unstable
-          cache-from: type=gha,scope=imdb-db-docker
-          cache-to: type=gha,mode=max,scope=imdb-db-docker
+          cache-from: type=gha,scope=docker-image
+          cache-to: type=gha,mode=max,scope=docker-image
           build-args: |
             GIT_COMMIT=${{ github.sha }}
             GIT_TAG=unstable
