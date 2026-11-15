@@ -14,6 +14,7 @@ RUN npm run build
 
 FROM python:3.14.8-slim-trixie
 
+ARG TARGETARCH
 ARG GIT_COMMIT=unknown
 ARG GIT_TAG=0.0.1
 
@@ -23,8 +24,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FRONTEND_DIST=/app/frontend-dist
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tini \
+    && apt-get install -y --no-install-recommends tini curl ca-certificates tzdata \
     && rm -rf /var/lib/apt/lists/*
+
+RUN case "$TARGETARCH" in \
+        amd64) checksum=1692066e350a88ff4d7d6474fe3c7a6c41ec5e89 ;; \
+        arm64) checksum=9d4c2000493215a1898502b2fc2dada3e8ea8c7a ;; \
+        *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/aptible/supercronic/releases/download/v0.2.51/supercronic-linux-${TARGETARCH}" -o /usr/local/bin/supercronic \
+    && echo "$checksum  /usr/local/bin/supercronic" | sha1sum -c - \
+    && chmod +x /usr/local/bin/supercronic
 
 RUN python -m venv /applib
 ENV PATH="/applib/bin:$PATH"
@@ -44,5 +54,5 @@ ENV GIT_COMMIT=${GIT_COMMIT} \
 
 EXPOSE 8000
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 CMD ["/app/run.sh"]

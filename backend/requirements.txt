@@ -2,5 +2,6 @@ aiohttp==3.14.5
 alembic==1.20.1
 asyncpg==0.32.0
 fastapi[standard]==0.163.1
-psycopg2-binary==2.9.13
+psycopg[binary]==3.3.9
+sqlalchemy[asyncio]==2.1.8
 sqlmodel==0.0.50

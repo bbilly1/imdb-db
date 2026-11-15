@@ -31,6 +31,7 @@ INGEST_BY_DATASET_NAME: dict[str, Type[IngestDataset]] = {
 SUPPORTED_DATASET_NAMES: tuple[str, ...] = tuple(INGEST_BY_DATASET_NAME.keys())
 CACHE_DIR = Path(environ["CACHE_DIR"])
 DATASET_TO_KEEP = environ.get("DATASET_TO_KEEP")
+INGEST_LOCK_ID = 0x494D4442  # IMDb: serialize scheduled, API, and CLI imports.
 
 
 def resolve_datasets(
@@ -82,14 +83,20 @@ async def import_datasets(dataset_names: list[str] | None = None) -> None:
     try:
         selected_classes, selected_dataset_names = resolve_datasets(dataset_names)
 
-        logger.info(
-            "Starting dataset imports datasets=%s",
-            ", ".join(selected_dataset_names),
-        )
+        async with pool.acquire() as lock_conn:
+            logger.info("Waiting for ingest lock")
+            await lock_conn.execute("SELECT pg_advisory_lock($1)", INGEST_LOCK_ID)
+            try:
+                logger.info(
+                    "Starting dataset imports datasets=%s",
+                    ", ".join(selected_dataset_names),
+                )
 
-        for ingest_class in selected_classes:
-            await ingest_class(pool=pool).run()
+                for ingest_class in selected_classes:
+                    await ingest_class(pool=pool).run()
+
+                clean_cache_dir()
+            finally:
+                await lock_conn.execute("SELECT pg_advisory_unlock($1)", INGEST_LOCK_ID)
     finally:
         await pool.close()
-
-    clean_cache_dir()

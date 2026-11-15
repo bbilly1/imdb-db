@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 APP_DIR="/app/backend/app"
@@ -22,6 +22,20 @@ done
 
 cd "$APP_DIR"
 
-exec uvicorn main:app \
-  --host 0.0.0.0 \
-  --port "${PORT:-8000}"
+if [ -z "${SCHEDULE:-}" ]; then
+  exec uvicorn main:app --host 0.0.0.0 --port "${PORT:-8000}"
+fi
+
+crontab_file=/tmp/imdb-ingest.cron
+mkdir -p "$CACHE_DIR"
+python "$APP_DIR/schedule.py" > "$crontab_file"
+
+# Tini forwards shutdown signals to both services; keep waiting until they exit.
+trap 'trap "" TERM INT; trap - EXIT; wait || true; exit 143' TERM
+trap 'trap "" TERM INT; trap - EXIT; wait || true; exit 130' INT
+# If either service exits on its own, stop the rest of Tini's child process group.
+trap 'trap "" TERM INT; kill -TERM 0; wait || true' EXIT
+
+supercronic "$crontab_file" &
+uvicorn main:app --host 0.0.0.0 --port "${PORT:-8000}" &
+wait -n

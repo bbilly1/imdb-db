@@ -119,6 +119,17 @@ There is a small CLI utility included to trigger the ingest flows:
 docker compose exec -it imdb-api ./backend/app/cli --help
 ```
 
+### Scheduled ingests
+
+To enable automated ingests, set the `SCHEDULE` env var. Each dataset is separated by `,` and each schedules separated by a `|`.
+
+`all` is a shortcut for all available datasets.
+
+Also set the `TZ` env var to configure your zimezone if desired.
+
+E.g.:
+- "title.basics.tsv,title.ratings.tsv:0 3 * * MON,WED,FRI|all:0 3 * * SUN"
+
 ## Local Development
 
 You can run Postgres in Docker and API locally:
