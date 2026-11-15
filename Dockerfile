@@ -12,7 +12,7 @@ COPY frontend/vite.config.ts frontend/tailwind.config.ts /frontend/
 
 RUN npm run build
 
-FROM python:3.13.11-slim-trixie
+FROM python:3.14.8-slim-trixie
 
 ARG GIT_COMMIT=unknown
 ARG GIT_TAG=0.0.1
